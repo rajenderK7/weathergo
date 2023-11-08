@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 type Location struct {
@@ -33,36 +31,51 @@ type WeatherResponse struct {
 }
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		panic("Weather API Key is not provided")
-	}
-	var location string = "Hyderabad"
+	// ".env" file expects a valid WEATHER_API_KEY and DEFAULT_LOCATION
+	// Weather API from `https://www.weatherapi.com/`
+
+	// Uncomment the following lines for development
+	// err := godotenv.Load(".env")
+	// if err != nil {
+	// log.Fatal("No .env file found, Expecting Weather API key from system")
+	// }
+
+	// The Weather API Key is sourced from the system environment variables
+	// in the build version
 	WEATHER_API_KEY := os.Getenv("WEATHER_API_KEY")
-	location = os.Getenv("DEFAULT_LOCATION")
-	args := os.Args
-	if len(args) > 1 {
-		location = args[1]
+	location := os.Getenv("DEFAULT_LOCATION")
+
+	// Custom location can be passed as an argument
+	if len(os.Args) > 1 {
+		location = os.Args[1]
 	}
-	if len(location) == 0 || len(WEATHER_API_KEY) == 0 {
-		panic("Invalid API Key or Default Location")
+	// Fallback to a default location
+	if len(location) == 0 {
+		location = "Hyderabad" // Any city for that matter can be used
 	}
-	fmt.Printf("-- CLI for Weather report in Go --\n")
+	if len(WEATHER_API_KEY) == 0 {
+		panic("Invalid Weather API Key")
+	}
+
 	url := fmt.Sprintf("http://api.weatherapi.com/v1/current.json?key=%s&q=%s", WEATHER_API_KEY, location)
 	res, err := http.Get(url)
 	if err != nil {
 		panic(err)
 	}
 	defer res.Body.Close()
+
 	data, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
+
 	var weatherData WeatherResponse
 	err = json.Unmarshal(data, &weatherData)
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Printf("-- CLI for Weather report in Go --\n")
 	fmt.Printf("Weather report of %s\n", location)
 	fmt.Println("City: ", weatherData.Location.Name)
 	fmt.Println("Country: ", weatherData.Location.Country)
